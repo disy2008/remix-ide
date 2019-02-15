@@ -6,6 +6,69 @@ var modalDialogCustom = require('../ui/modal-dialog-custom')
 var css = require('./styles/test-tab-styles')
 var remixTests = require('remix-tests')
 
+class TestTabLogic {
+
+  constructor (fileManager) {
+    this.fileManager = fileManager
+  }
+
+  generateTestFile () {
+    var path = this.fileManager.currentPath()
+    var fileProvider = this.fileManager.fileProviderOf(path)
+    if (!fileProvider) return
+    helper.createNonClashingNameWithPrefix(path + '/test.sol', fileProvider, '_test', (error, newFile) => {
+      if (error) return modalDialogCustom.alert('Failed to create file. ' + newFile + ' ' + error)
+      if (!fileProvider.set(newFile, this.generateTestContractSample())) return modalDialogCustom.alert('Failed to create test file ' + newFile)
+      this.fileManager.switchFile(newFile)
+    })
+  }
+
+  generateTestContractSample () {
+    return `pragma solidity >=0.4.0 <0.6.0;
+      import "remix_tests.sol"; // this import is automatically injected by Remix.
+
+      // file name has to end with '_test.sol'
+      contract test_1 {
+
+        function beforeAll() public {
+          // here should instantiate tested contract
+          Assert.equal(uint(4), uint(3), "error in before all function");
+        }
+
+        function check1() public {
+          // use 'Assert' to test the contract
+          Assert.equal(uint(2), uint(1), "error message");
+          Assert.equal(uint(2), uint(2), "error message");
+        }
+
+        function check2() public view returns (bool) {
+          // use the return value (true or false) to test the contract
+          return true;
+        }
+      }
+
+    contract test_2 {
+
+      function beforeAll() public {
+        // here should instantiate tested contract
+        Assert.equal(uint(4), uint(3), "error in before all function");
+      }
+
+      function check1() public {
+        // use 'Assert' to test the contract
+        Assert.equal(uint(2), uint(1), "error message");
+        Assert.equal(uint(2), uint(2), "error message");
+      }
+
+      function check2() public view returns (bool) {
+        // use the return value (true or false) to test the contract
+        return true;
+      }
+    }`
+  }
+
+}
+
 class TestTab {
 
   constructor (fileManager, filePanel, compileTab) {
@@ -13,6 +76,7 @@ class TestTab {
     this._view = { el: null }
     this.fileManager = fileManager
     this.filePanel = filePanel
+    this.testTabLogic = new TestTabLogic(fileManager)
     this.data = {}
     this.testList = yo`<div class=${css.testList}></div>`
     this.listenToEvents()
@@ -163,17 +227,6 @@ class TestTab {
     async.eachOfSeries(tests, (value, key, callback) => { this.runTest(value, callback) })
   }
 
-  generateTestFile () {
-    var path = this.fileManager.currentPath()
-    var fileProvider = this.fileManager.fileProviderOf(path)
-    if (!fileProvider) return
-    helper.createNonClashingNameWithPrefix(path + '/test.sol', fileProvider, '_test', (error, newFile) => {
-      if (error) return modalDialogCustom.alert('Failed to create file. ' + newFile + ' ' + error)
-      if (!fileProvider.set(newFile, testContractSample)) return modalDialogCustom.alert('Failed to create test file ' + newFile)
-      this.fileManager.switchFile(newFile)
-    })
-  }
-
   render () {
     this.testsOutput = yo`<div class=${css.container} hidden='true' id="tests"></div>`
     this.testsSummary = yo`<div class=${css.container} hidden='true' id="tests"></div>`
@@ -189,7 +242,7 @@ class TestTab {
           <br/>
           For more details, see
           How to test smart contracts guide in our documentation.
-          <div class="${css.generateTestFile}" onclick="${this.generateTestFile(this)}">Generate test file</div>
+          <div class="${css.generateTestFile}" onclick="${this.testTabLogic.generateTestFile(this)}">Generate test file</div>
         </div>
         <div class="${css.tests}">
           ${this.testList}
@@ -214,47 +267,5 @@ class TestTab {
   }
 
 }
-
-var testContractSample = `pragma solidity >=0.4.0 <0.6.0;
-import "remix_tests.sol"; // this import is automatically injected by Remix.
-
-// file name has to end with '_test.sol'
-contract test_1 {
-
-  function beforeAll() public {
-    // here should instantiate tested contract
-    Assert.equal(uint(4), uint(3), "error in before all function");
-  }
-
-  function check1() public {
-    // use 'Assert' to test the contract
-    Assert.equal(uint(2), uint(1), "error message");
-    Assert.equal(uint(2), uint(2), "error message");
-  }
-
-  function check2() public view returns (bool) {
-    // use the return value (true or false) to test the contract
-    return true;
-  }
-}
-
-contract test_2 {
-
-  function beforeAll() public {
-    // here should instantiate tested contract
-    Assert.equal(uint(4), uint(3), "error in before all function");
-  }
-
-  function check1() public {
-    // use 'Assert' to test the contract
-    Assert.equal(uint(2), uint(1), "error message");
-    Assert.equal(uint(2), uint(2), "error message");
-  }
-
-  function check2() public view returns (bool) {
-    // use the return value (true or false) to test the contract
-    return true;
-  }
-}`
 
 module.exports = TestTab
