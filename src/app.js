@@ -463,7 +463,11 @@ Please make a backup of your contracts and start using http://remix.ethereum.org
   let analysis = new AnalysisTab(registry)
   let debug = new DebuggerTab()
   // let support = new SupportTab()
-  let test = new TestTab(self._components.registry, compileTab)
+  let test = new TestTab(
+    registry.get('filemanager').api,
+    registry.get('filepanel').api,
+    compileTab
+  )
   let sourceHighlighters = registry.get('editor').api.sourceHighlighters
   let configProvider = self._components.filesProviders['config']
 
